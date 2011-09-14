@@ -1,6 +1,13 @@
 #import "FMDatabase.h"
 #import "unistd.h"
 
+@interface FMDatabase (Private)
+
+- (BOOL)executeUpdate:(NSString*)sql error:(NSError**)outErr withArgumentsInArray:(NSArray*)arrayArgs orVAList:(va_list)args;
+- (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInArray:(NSArray*)arrayArgs dictionary:(NSDictionary*)dictAgs orVAList:(va_list)args; 
+
+@end
+
 @implementation FMDatabase
 
 + (id)databaseWithPath:(NSString*)aPath {
@@ -402,7 +409,11 @@
     return [self executeQuery:sql withArgumentsInArray:arguments orVAList:nil];
 }
 
-- (BOOL)executeUpdate:(NSString*)sql error:(NSError**)outErr withArgumentsInArray:(NSArray*)arrayArgs orVAList:(va_list)args {
+- (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInDictionary:(NSDictionary *)arguments {
+    return [self executeQuery:sql withArgumentsInArray:nil dictionary: arguments orVAList:nil];
+}
+
+- (BOOL)executeUpdate:(NSString*)sql error:(NSError**)outErr withArgumentsInArray:(NSArray*)arrayArgs dictionary:(NSDictionary*)dictAgs orVAList:(va_list)args {
 	
     if (inUse) {
         [self compainAboutInUse];
@@ -474,10 +485,18 @@
     id obj;
     int idx = 0;
     int queryCount = sqlite3_bind_parameter_count(pStmt);
+    const char *argName;
     
     while (idx < queryCount) {
         
-        if (arrayArgs) {
+        if (dictAgs) {
+            argName = sqlite3_bind_parameter_name(pStmt, idx + 1);
+            if(argName) {
+                obj = [dictAgs objectForKey: [NSString stringWithCString: argName encoding: NSUTF8StringEncoding]];
+            } else {
+                obj = nil;
+            }
+        } else if (arrayArgs) {
             obj = [arrayArgs objectAtIndex:idx];
         }
         else {
