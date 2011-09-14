@@ -44,6 +44,9 @@
 - (int)columnIndexForName:(NSString*)columnName;
 - (NSString*)columnNameForIndex:(int)columnIdx;
 
+- (int)columnCount;
+- (int)columnDataTypeForIndex:(int)columnIdx;
+
 - (int)intForColumn:(NSString*)columnName;
 - (int)intForColumnIndex:(int)columnIdx;
 

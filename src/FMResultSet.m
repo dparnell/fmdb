@@ -343,6 +343,13 @@
     return [self UTF8StringForColumnIndex:[self columnIndexForName:columnName]];
 }
 
+- (int)columnDataTypeForIndex:(int)columnIdx {
+    return sqlite3_column_type(statement.statement, columnIdx);
+}
+
+- (int)columnCount {
+    return sqlite3_column_count(statement.statement);
+}
 
 // returns autoreleased NSString containing the name of the column in the result set
 - (NSString*)columnNameForIndex:(int)columnIdx {
