@@ -3,7 +3,7 @@
 
 @interface FMDatabase (Private)
 
-- (BOOL)executeUpdate:(NSString*)sql error:(NSError**)outErr withArgumentsInArray:(NSArray*)arrayArgs orVAList:(va_list)args;
+- (BOOL)executeUpdate:(NSString*)sql error:(NSError**)outErr withArgumentsInArray:(NSArray*)arrayArgs dictionary:(NSDictionary*)dictAgs orVAList:(va_list)args;
 - (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInArray:(NSArray*)arrayArgs dictionary:(NSDictionary*)dictAgs orVAList:(va_list)args; 
 
 @end
@@ -276,7 +276,7 @@
     }
 }
 
-- (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInArray:(NSArray*)arrayArgs orVAList:(va_list)args {
+- (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInArray:(NSArray*)arrayArgs dictionary:(NSDictionary*) dictAgs orVAList:(va_list)args {
     
     if (inUse) {
         [self compainAboutInUse];
@@ -345,10 +345,18 @@
     id obj;
     int idx = 0;
     int queryCount = sqlite3_bind_parameter_count(pStmt); // pointed out by Dominic Yu (thanks!)
+    const char *argName;
     
     while (idx < queryCount) {
         
-        if (arrayArgs) {
+        if (dictAgs) {
+            argName = sqlite3_bind_parameter_name(pStmt, idx + 1);
+            if(argName) {
+                obj = [dictAgs objectForKey: [NSString stringWithCString: argName encoding: NSUTF8StringEncoding]];
+            } else {
+                obj = nil;
+            }
+        } else if (arrayArgs) {
             obj = [arrayArgs objectAtIndex:idx];
         }
         else {
@@ -399,14 +407,14 @@
     va_list args;
     va_start(args, sql);
     
-    id result = [self executeQuery:sql withArgumentsInArray:nil orVAList:args];
+    id result = [self executeQuery:sql withArgumentsInArray:nil dictionary: nil orVAList:args];
     
     va_end(args);
     return result;
 }
 
 - (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInArray:(NSArray *)arguments {
-    return [self executeQuery:sql withArgumentsInArray:arguments orVAList:nil];
+    return [self executeQuery:sql withArgumentsInArray:arguments dictionary: nil orVAList:nil];
 }
 
 - (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInDictionary:(NSDictionary *)arguments {
@@ -600,7 +608,7 @@
     va_list args;
     va_start(args, sql);
     
-    BOOL result = [self executeUpdate:sql error:nil withArgumentsInArray:nil orVAList:args];
+    BOOL result = [self executeUpdate:sql error:nil withArgumentsInArray:nil dictionary: nil orVAList:args];
     
     va_end(args);
     return result;
@@ -609,14 +617,14 @@
 
 
 - (BOOL)executeUpdate:(NSString*)sql withArgumentsInArray:(NSArray *)arguments {
-    return [self executeUpdate:sql error:nil withArgumentsInArray:arguments orVAList:nil];
+    return [self executeUpdate:sql error:nil withArgumentsInArray:arguments dictionary: nil orVAList:nil];
 }
 
 - (BOOL)update:(NSString*)sql error:(NSError**)outErr bind:(id)bindArgs, ... {
     va_list args;
     va_start(args, bindArgs);
     
-    BOOL result = [self executeUpdate:sql error:outErr withArgumentsInArray:nil orVAList:args];
+    BOOL result = [self executeUpdate:sql error:outErr withArgumentsInArray:nil dictionary: nil orVAList:args];
     
     va_end(args);
     return result;
