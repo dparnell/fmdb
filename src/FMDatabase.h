@@ -8,6 +8,7 @@
 	NSString*   databasePath;
     BOOL        logsErrors;
     BOOL        crashOnErrors;
+    BOOL        raisesErrors;
     BOOL        inUse;
     BOOL        inTransaction;
     BOOL        traceExecution;
@@ -59,6 +60,9 @@
 
 - (BOOL)logsErrors;
 - (void)setLogsErrors:(BOOL)flag;
+
+- (BOOL)raisesErrors;
+- (void)setRaisesErrors:(BOOL)flag;
 
 - (BOOL)crashOnErrors;
 - (void)setCrashOnErrors:(BOOL)flag;

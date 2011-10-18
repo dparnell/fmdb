@@ -20,9 +20,10 @@
     if (self) {
         databasePath        = [aPath copy];
         db                  = 0x00;
-        logsErrors          = 0x00;
-        crashOnErrors       = 0x00;
+        logsErrors          = NO;
+        crashOnErrors       = NO;
         busyRetryTimeout    = 0x00;
+        raisesErrors        = NO;
     }
 	
 	return self;
@@ -183,8 +184,12 @@
 }
 
 - (void)compainAboutInUse {
-    NSLog(@"The FMDatabase %@ is currently in use.", self);
-    
+    if(logsErrors) {
+        NSLog(@"The FMDatabase %@ is currently in use.", self);
+    }
+    if(raisesErrors) {
+        @throw [NSException exceptionWithName: @"SQLITE" reason: NSLocalizedString(@"Database is in use", @"Database is in use") userInfo: nil];
+    }
 #ifndef NS_BLOCK_ASSERTIONS
     if (crashOnErrors) {
         NSAssert1(false, @"The FMDatabase %@ is currently in use.", self);
@@ -313,10 +318,15 @@
                 usleep(20);
                 
                 if (busyRetryTimeout && (numberOfRetries++ > busyRetryTimeout)) {
-                    NSLog(@"%s:%d Database busy (%@)", __FUNCTION__, __LINE__, [self databasePath]);
-                    NSLog(@"Database busy");
+                    if(logsErrors) {
+                        NSLog(@"%s:%d Database busy (%@)", __FUNCTION__, __LINE__, [self databasePath]);
+                        NSLog(@"Database busy");
+                    }
                     sqlite3_finalize(pStmt);
                     [self setInUse:NO];
+                    if(raisesErrors) {
+                        @throw [NSException exceptionWithName: @"FMDatabase" reason: [NSString stringWithFormat: NSLocalizedString(@"Database busy %@", @"Database busy format"), [self databasePath]] userInfo: nil];
+                    }
                     return nil;
                 }
             }
@@ -326,16 +336,21 @@
                 if (logsErrors) {
                     NSLog(@"DB Error: %d \"%@\"", [self lastErrorCode], [self lastErrorMessage]);
                     NSLog(@"DB Query: %@", sql);
-#ifndef NS_BLOCK_ASSERTIONS
-                    if (crashOnErrors) {
-                        NSAssert2(false, @"DB Error: %d \"%@\"", [self lastErrorCode], [self lastErrorMessage]);
-                    }
-#endif
                 }
+#ifndef NS_BLOCK_ASSERTIONS
+                if (crashOnErrors) {
+                    NSAssert2(false, @"DB Error: %d \"%@\"", [self lastErrorCode], [self lastErrorMessage]);
+                }
+#endif
                 
                 sqlite3_finalize(pStmt);
                 
                 [self setInUse:NO];
+                
+                if(raisesErrors) {
+                    @throw [NSException exceptionWithName: @"FMDatabase" reason: [self lastErrorMessage] userInfo: nil];
+                }
+                
                 return nil;
             }
         }
@@ -373,9 +388,14 @@
     }
     
     if (idx != queryCount) {
-        NSLog(@"Error: the bind count is not correct for the # of variables (executeQuery)");
+        if(logsErrors) {
+            NSLog(@"Error: the bind count is not correct for the # of variables (executeQuery)");
+        }
         sqlite3_finalize(pStmt);
         [self setInUse:NO];
+        if(raisesErrors) {
+            @throw [NSException exceptionWithName: @"FMDatabase" reason: NSLocalizedString(@"Bind variable count incorrect", @"Bind variable count incorrect") userInfo: nil];
+        }
         return nil;
     }
     
@@ -667,6 +687,14 @@
 }
 - (void)setLogsErrors:(BOOL)flag {
     logsErrors = flag;
+}
+
+- (BOOL)raisesErrors {
+    return raisesErrors;
+}
+
+- (void)setRaisesErrors:(BOOL)flag {
+    raisesErrors = flag;
 }
 
 - (BOOL)crashOnErrors {
