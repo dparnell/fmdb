@@ -344,7 +344,8 @@
                 [self setInUse:NO];
                 
                 if(raisesErrors) {
-                    @throw [NSException exceptionWithName: @"FMDatabase" reason: [self lastErrorMessage] userInfo: nil];
+                    NSString* err = [self lastErrorMessage];
+                    @throw [NSException exceptionWithName: @"FMDatabase" reason: err userInfo: nil];
                 }
                 
                 return nil;
