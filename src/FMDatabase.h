@@ -51,7 +51,7 @@
 
 - (FMResultSet *)executeQuery:(NSString*)sql, ...;
 - (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInArray:(NSArray *)arguments;
-- (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInDictionary:(NSDictionary *)arguments;
+- (FMResultSet *)executeQuery:(NSString *)sql error:(NSError**)outErr withArgumentsInDictionary:(NSDictionary *)arguments;
 
 - (BOOL)rollback;
 - (BOOL)commit;

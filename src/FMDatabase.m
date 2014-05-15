@@ -277,7 +277,7 @@
     }
 }
 
-- (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInArray:(NSArray*)arrayArgs dictionary:(NSDictionary*) dictAgs orVAList:(va_list)args {
+- (FMResultSet *)executeQuery:(NSString *)sql error:(NSError**)outErr withArgumentsInArray:(NSArray*)arrayArgs dictionary:(NSDictionary*) dictAgs orVAList:(va_list)args {
     
     if (inUse) {
         [self compainAboutInUse];
@@ -314,6 +314,7 @@
                 usleep(20);
                 
                 if (busyRetryTimeout && (numberOfRetries++ > busyRetryTimeout)) {
+                    NSString *msg = [NSString stringWithFormat: NSLocalizedString(@"Database busy %@", @"Database busy format"), [self databasePath]];
                     if(logsErrors) {
                         NSLog(@"%s:%d Database busy (%@)", __FUNCTION__, __LINE__, [self databasePath]);
                         NSLog(@"Database busy");
@@ -321,7 +322,10 @@
                     sqlite3_finalize(pStmt);
                     [self setInUse:NO];
                     if(raisesErrors) {
-                        @throw [NSException exceptionWithName: @"FMDatabase" reason: [NSString stringWithFormat: NSLocalizedString(@"Database busy %@", @"Database busy format"), [self databasePath]] userInfo: nil];
+                        @throw [NSException exceptionWithName: @"FMDatabase" reason: msg userInfo: nil];
+                    }
+                    if(outErr) {
+                        *outErr = [NSError errorWithDomain: @"SQLite" code: [self lastErrorCode] userInfo: [NSDictionary dictionaryWithObject: msg forKey: NSLocalizedDescriptionKey]];
                     }
                     return nil;
                 }
@@ -348,6 +352,9 @@
                     @throw [NSException exceptionWithName: @"FMDatabase" reason: err userInfo: nil];
                 }
                 
+                if(outErr) {
+                    *outErr = [NSError errorWithDomain: @"SQLite" code: [self lastErrorCode] userInfo: [NSDictionary dictionaryWithObject: [self lastErrorMessage] forKey: NSLocalizedDescriptionKey]];
+                }
                 return nil;
             }
         }
@@ -433,8 +440,8 @@
     return [self executeQuery:sql withArgumentsInArray:arguments dictionary: nil orVAList:nil];
 }
 
-- (FMResultSet *)executeQuery:(NSString *)sql withArgumentsInDictionary:(NSDictionary *)arguments {
-    return [self executeQuery:sql withArgumentsInArray:nil dictionary: arguments orVAList:nil];
+- (FMResultSet *)executeQuery:(NSString *)sql error: (NSError**) error withArgumentsInDictionary:(NSDictionary *)arguments {
+    return [self executeQuery:sql error: error withArgumentsInArray:nil dictionary: arguments orVAList:nil];
 }
 
 - (BOOL)executeUpdate:(NSString*)sql error:(NSError**)outErr withArgumentsInArray:(NSArray*)arrayArgs dictionary:(NSDictionary*)dictAgs orVAList:(va_list)args {
